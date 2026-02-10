@@ -1,0 +1,385 @@
+```html
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Datum-Rechner (iOS)</title>
+  <style>
+    :root{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      -webkit-text-size-adjust:100%;
+      color-scheme: light;
+    }
+    body{
+      margin:0;
+      padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+      background:#f4f6f8;
+      touch-action: manipulation;
+    }
+    .card{
+      max-width:680px;
+      margin:0 auto;
+      background:#fff;
+      border-radius:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+      padding:16px;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:20px;
+      line-height:1.2;
+    }
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:#eef7ee;
+      border:1px solid #cfe9cf;
+      color:#124a12;
+      margin-bottom:14px;
+      user-select:none;
+    }
+    .badge.off{
+      background:#fff4e5;
+      border-color:#ffd7a3;
+      color:#6b3d00;
+    }
+    .section-title{
+      margin:14px 0 10px;
+      font-size:15px;
+      font-weight:800;
+      color:#111;
+    }
+    label{
+      display:block;
+      margin:10px 0 6px;
+      font-weight:700;
+      font-size:14px;
+      color:#1a1a1a;
+    }
+    input{
+      width:100%;
+      box-sizing:border-box;
+      font-size:18px;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid #d7dbe0;
+      background:#fff;
+      outline:none;
+    }
+    input:focus{ border-color:#1f6feb; box-shadow:0 0 0 4px rgba(31,111,235,.15); }
+    .row{ display:flex; gap:10px; }
+    .row > *{ flex:1; }
+
+    /* iOS-friendly segmented control */
+    .seg{
+      display:flex;
+      border:1px solid #d7dbe0;
+      border-radius:12px;
+      overflow:hidden;
+      background:#f7f8fa;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .seg button{
+      flex:1;
+      padding:10px 8px;
+      font-size:16px;
+      font-weight:800;
+      border:0;
+      background:transparent;
+      color:#334;
+    }
+    .seg button.active{
+      background:#1f6feb;
+      color:#fff;
+    }
+
+    .btnrow{ display:flex; gap:10px; margin-top:12px; }
+    button.action{
+      flex:1;
+      font-size:18px;
+      padding:12px 14px;
+      border-radius:12px;
+      border:0;
+      background:#1f6feb;
+      color:#fff;
+      font-weight:800;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button.secondary{
+      background:#e9eef6;
+      color:#0b1a33;
+    }
+
+    .out{
+      margin-top:12px;
+      padding:12px;
+      border-radius:12px;
+      background:#f0f6ff;
+      border:1px solid #cfe3ff;
+      font-size:16px;
+      line-height:1.35;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .out.error{
+      background:#fff0f0;
+      border-color:#ffd1d1;
+    }
+    .divider{
+      height:1px;
+      background:#eef1f4;
+      margin:16px 0;
+    }
+    .hint{
+      margin-top:10px;
+      font-size:12.5px;
+      color:#556;
+      line-height:1.4;
+    }
+    .copyrow{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .copyrow button{
+      flex:1;
+      font-size:16px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid #d7dbe0;
+      background:#fff;
+      font-weight:800;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Datum-Rechner</h1>
+    <div id="jsBadge" class="badge off">⏳ JavaScript-Check…</div>
+
+    <div class="section-title">1) Datum ± Tage</div>
+
+    <label for="start">Startdatum</label>
+    <input id="start" type="date" />
+
+    <label>Richtung</label>
+    <div class="seg" role="tablist" aria-label="Richtung">
+      <button id="btnFuture" type="button" class="active" role="tab" aria-selected="true">Zukunft (+)</button>
+      <button id="btnPast" type="button" role="tab" aria-selected="false">Vergangenheit (−)</button>
+    </div>
+
+    <label for="days">Tage (positiv)</label>
+    <input id="days" type="number" inputmode="numeric" min="0" placeholder="z.B. 30" />
+
+    <div class="btnrow">
+      <button id="calcShift" class="action" type="button">Berechnen</button>
+      <button id="todayShift" class="action secondary" type="button">Heute</button>
+    </div>
+
+    <div id="resultShift" class="out" aria-live="polite">Ergebnis erscheint hier.</div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">2) Differenz in Tagen</div>
+
+    <label for="d1">Datum 1</label>
+    <input id="d1" type="date" />
+
+    <label for="d2">Datum 2</label>
+    <input id="d2" type="date" />
+
+    <div class="btnrow">
+      <button id="calcDiff" class="action" type="button">Differenz</button>
+      <button id="todayDiff" class="action secondary" type="button">Heute in beide</button>
+    </div>
+
+    <div class="copyrow">
+      <button id="swap" type="button">↔️ Tauschen</button>
+      <button id="copy" type="button">📋 Ergebnis kopieren</button>
+    </div>
+
+    <div id="resultDiff" class="out" aria-live="polite">Differenz erscheint hier.</div>
+
+    <div class="hint">
+      Rechnet in <b>UTC</b> (Sommerzeit-sicher). Schaltjahre werden korrekt berücksichtigt.
+      Tipp: In Safari → Teilen → „Zum Home-Bildschirm“, dann wirkt es wie eine App.
+    </div>
+  </div>
+
+  <script>
+    // ---- Elements
+    const startEl = document.getElementById("start");
+    const daysEl = document.getElementById("days");
+    const resShiftEl = document.getElementById("resultShift");
+
+    const d1El = document.getElementById("d1");
+    const d2El = document.getElementById("d2");
+    const resDiffEl = document.getElementById("resultDiff");
+
+    const jsBadge = document.getElementById("jsBadge");
+
+    const btnFuture = document.getElementById("btnFuture");
+    const btnPast = document.getElementById("btnPast");
+
+    const msPerDay = 24 * 60 * 60 * 1000;
+    let direction = +1; // +1 future, -1 past
+
+    // ---- Helpers (UTC safe)
+    function parseDateInputToUTC(yyyy_mm_dd) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(yyyy_mm_dd);
+      if (!m) return null;
+      const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+      const dt = new Date(Date.UTC(y, mo - 1, d));
+      if (dt.getUTCFullYear() !== y || (dt.getUTCMonth() + 1) !== mo || dt.getUTCDate() !== d) return null;
+      return dt;
+    }
+
+    function formatUTCDateToInput(dt) {
+      const y = dt.getUTCFullYear();
+      const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(dt.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function fmtDE(dt) {
+      return new Intl.DateTimeFormat("de-DE", {
+        weekday: "long", year: "numeric", month: "2-digit", day: "2-digit",
+        timeZone: "UTC"
+      }).format(dt);
+    }
+
+    function todayUTC() {
+      const now = new Date();
+      return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    }
+
+    function show(el, text, isError = false) {
+      el.textContent = text;
+      el.classList.toggle("error", !!isError);
+    }
+
+    function setDirection(dir) {
+      direction = dir;
+      const future = dir === +1;
+      btnFuture.classList.toggle("active", future);
+      btnPast.classList.toggle("active", !future);
+      btnFuture.setAttribute("aria-selected", future ? "true" : "false");
+      btnPast.setAttribute("aria-selected", !future ? "true" : "false");
+    }
+
+    // ---- Features
+    function setTodayShift() {
+      startEl.value = formatUTCDateToInput(todayUTC());
+    }
+
+    function calculateShift() {
+      try {
+        const start = parseDateInputToUTC(startEl.value);
+        if (!start) return show(resShiftEl, "Bitte ein gültiges Startdatum wählen.", true);
+
+        const raw = daysEl.value;
+        if (raw === "") return show(resShiftEl, "Bitte eine Tagesanzahl eingeben.", true);
+
+        const days = Math.trunc(Number(raw));
+        if (!Number.isFinite(days) || days < 0) return show(resShiftEl, "Tage müssen eine positive Zahl (oder 0) sein.", true);
+
+        const target = new Date(start.getTime() + direction * days * msPerDay);
+        show(resShiftEl, `Ergebnis:\n${fmtDE(target)}\nISO: ${formatUTCDateToInput(target)}`);
+      } catch (e) {
+        show(resShiftEl, "Fehler beim Berechnen. Öffne die Seite in Safari (nicht nur in WhatsApp/Preview).", true);
+      }
+    }
+
+    function setTodayDiff() {
+      const t = todayUTC();
+      d1El.value = formatUTCDateToInput(t);
+      d2El.value = formatUTCDateToInput(t);
+    }
+
+    function calculateDiff() {
+      try {
+        const d1 = parseDateInputToUTC(d1El.value);
+        const d2 = parseDateInputToUTC(d2El.value);
+        if (!d1 || !d2) return show(resDiffEl, "Bitte beide Daten gültig auswählen.", true);
+
+        const diffDays = Math.round((d2.getTime() - d1.getTime()) / msPerDay);
+        let extra = "";
+        if (diffDays > 0) extra = " (Datum 2 liegt in der Zukunft)";
+        else if (diffDays < 0) extra = " (Datum 2 liegt in der Vergangenheit)";
+        else extra = " (gleiches Datum)";
+
+        show(resDiffEl, `Differenz: ${diffDays} Tag(e)${extra}`);
+      } catch (e) {
+        show(resDiffEl, "Fehler beim Berechnen. Öffne die Seite in Safari (nicht nur in WhatsApp/Preview).", true);
+      }
+    }
+
+    function swapDates() {
+      const tmp = d1El.value;
+      d1El.value = d2El.value;
+      d2El.value = tmp;
+      show(resDiffEl, "Getauscht. Tippe auf „Differenz“, um neu zu berechnen.");
+    }
+
+    async function copyResult() {
+      const text = [resShiftEl.textContent, resDiffEl.textContent].join("\n\n");
+      // iOS: Clipboard API geht in HTTPS/Safari meist, sonst Fallback
+      try {
+        await navigator.clipboard.writeText(text);
+        show(resDiffEl, resDiffEl.textContent + "\n\n✅ Kopiert in Zwischenablage.");
+      } catch {
+        // Fallback
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        show(resDiffEl, resDiffEl.textContent + (ok ? "\n\n✅ Kopiert." : "\n\n⚠️ Konnte nicht kopieren."), !ok);
+      }
+    }
+
+    // ---- Events (use click + touchstart to be extra robust)
+    function bindTap(el, fn) {
+      el.addEventListener("click", fn, { passive: true });
+      el.addEventListener("touchstart", (e) => { /* allow fast tap */ }, { passive: true });
+    }
+
+    bindTap(btnFuture, () => setDirection(+1));
+    bindTap(btnPast, () => setDirection(-1));
+
+    bindTap(document.getElementById("calcShift"), calculateShift);
+    bindTap(document.getElementById("todayShift"), () => { setTodayShift(); show(resShiftEl, "Startdatum auf heute gesetzt."); });
+
+    bindTap(document.getElementById("calcDiff"), calculateDiff);
+    bindTap(document.getElementById("todayDiff"), () => { setTodayDiff(); show(resDiffEl, "Beide Daten auf heute gesetzt."); });
+
+    bindTap(document.getElementById("swap"), swapDates);
+    bindTap(document.getElementById("copy"), copyResult);
+
+    // Enter key convenience
+    daysEl.addEventListener("keydown", (e) => { if (e.key === "Enter") calculateShift(); });
+
+    // ---- Init
+    setDirection(+1);
+    setTodayShift();
+    setTodayDiff();
+
+    // JS badge (helps detect "preview that blocks JS")
+    jsBadge.textContent = "✅ JavaScript läuft";
+    jsBadge.classList.remove("off");
+  </script>
+</body>
+</html>
+```
